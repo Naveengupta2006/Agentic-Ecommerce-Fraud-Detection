@@ -1,0 +1,25 @@
+# Data files (large datasets not committed to git)
+data/
+
+# Model binaries & checkpoints (regenerate via notebook)
+models/*.pkl
+
+# Python virtual environment & cache
+.venv/
+env/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Environment configurations & secrets
+.env
+.env.*
+
+# OS generated files
+.DS_Store
+Thumbs.db
