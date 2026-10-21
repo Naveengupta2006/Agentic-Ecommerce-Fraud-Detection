@@ -35,8 +35,8 @@ To call a tool: {"action": "get_user_history"}
 To finish: {"action": "final", "decision": "...", "confidence": 0.0 to 1.0, "reasoning": "2-3 sentences", "evidence": ["short fact", "short fact"]}
 
 decision must be one of: approve, step_up_verification, hold_for_review, block.
-Call at most 3 tools. Base your decision only on tool results and never invent facts.
-If signals are mixed or you are unsure, choose hold_for_review or step_up_verification."""
+Call at most 3 tools, and always call explain_score before deciding.
+In your reasoning, consider the verification flags (avs_match, cvv_result, three_ds_flag) and any country mismatch between country and bin_country."""
 
 
 def run_tool(name, txn, user_id):
@@ -108,16 +108,13 @@ def review_transaction(txn, user_id, force_agent=False):
     tool_calls = []
 
     for _ in range(MAX_STEPS):
-        try:
-            resp = client.chat.completions.create(
-                model=MODEL, messages=messages, temperature=0.2, max_tokens=2048
-            )
-        except Exception as e:
+        msg = call_llm(messages)
+        if msg is None:
             return _result("hold_for_review", 0.0, score,
-                           f"Agent unavailable ({type(e).__name__}), sent to human review.",
+                           "Agent unavailable (LLM did not respond), sent to human review.",
                            [], tool_calls, True)
 
-        msg = resp.choices[0].message
+        text = msg.content or getattr(msg, "reasoning_content", None) or ""
         text = msg.content or getattr(msg, "reasoning_content", None) or ""
         data = parse_json(text)
         if not data:
