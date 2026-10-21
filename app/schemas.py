@@ -20,3 +20,15 @@ class FraudOutput(BaseModel):
     is_fraud: int
     fraud_probability: float
     risk_level: str
+
+class AgentInput(TransactionInput):
+    user_id: int
+
+class AgentOutput(BaseModel):
+    decision: str
+    confidence: float
+    model_score: float
+    reasoning: str
+    evidence: list
+    tool_calls: list
+    used_agent: bool
