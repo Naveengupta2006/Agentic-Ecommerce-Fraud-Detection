@@ -1,3 +1,4 @@
+import time
 from app.agent.agent import client, MODEL, SYSTEM_PROMPT
 
 user_msg = (
@@ -6,6 +7,7 @@ user_msg = (
     "ML model fraud probability: 0.0202\nInvestigate and decide."
 )
 
+start = time.time()
 resp = client.chat.completions.create(
     model=MODEL,
     messages=[
@@ -15,8 +17,6 @@ resp = client.chat.completions.create(
     temperature=0.2,
     max_tokens=2048,
 )
-
-choice = resp.choices[0]
-print("finish_reason:", choice.finish_reason)
-print("CONTENT:", repr(choice.message.content))
-print("REASONING:", repr(getattr(choice.message, "reasoning_content", None))[:600])
+print("time:", round(time.time() - start, 1), "sec")
+print("finish_reason:", resp.choices[0].finish_reason)
+print("CONTENT:", repr(resp.choices[0].message.content))
