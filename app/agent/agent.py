@@ -13,6 +13,8 @@ load_dotenv()
 client = OpenAI(
     base_url=os.environ["NVIDIA_BASE_URL"],
     api_key=os.environ["NVIDIA_API_KEY"],
+    timeout=60,
+    max_retries=0,
 )
 MODEL = os.environ["NVIDIA_MODEL"]
 
@@ -40,11 +42,12 @@ In your reasoning, consider the verification flags (avs_match, cvv_result, three
 
 
 def run_tool(name, txn, user_id):
+    t = datetime.fromisoformat(txn["transaction_time"].replace("Z", "+00:00"))
+    as_of = t.strftime("%Y-%m-%d %H:%M:%S")
     if name == "get_user_history":
-        return get_user_history(user_id)
+        return get_user_history(user_id, as_of)
     if name == "check_velocity":
-        t = datetime.fromisoformat(txn["transaction_time"].replace("Z", "+00:00"))
-        return check_velocity(user_id, t.strftime("%Y-%m-%d %H:%M:%S"))
+        return check_velocity(user_id, as_of)
     if name == "explain_score":
         return explain_score(txn)
 
