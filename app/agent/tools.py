@@ -9,12 +9,15 @@ _base_xgb = model.calibrated_classifiers_[0].estimator
 _explainer = shap.TreeExplainer(_base_xgb)
 
 
-def get_user_history(user_id: int) -> dict:
+def get_user_history(user_id: int, before_time: str = None) -> dict:
+    query = """SELECT COUNT(*), AVG(amount), SUM(is_fraud), MAX(account_age_days)
+               FROM transactions WHERE user_id = ?"""
+    params = [user_id]
+    if before_time:
+        query += " AND transaction_time < ?"
+        params.append(before_time)
     con = sqlite3.connect(DB_PATH)
-    row = con.execute(
-        """SELECT COUNT(*), AVG(amount), SUM(is_fraud), MAX(account_age_days)
-           FROM transactions WHERE user_id = ?""", (user_id,)
-    ).fetchone()
+    row = con.execute(query, params).fetchone()
     con.close()
     return {
         "total_transactions": row[0],
@@ -28,13 +31,12 @@ def check_velocity(user_id: int, as_of_time: str, window_hours: int = 72) -> dic
     con = sqlite3.connect(DB_PATH)
     count = con.execute(
         """SELECT COUNT(*) FROM transactions
-           WHERE user_id = ? AND transaction_time <= ?
+           WHERE user_id = ? AND transaction_time < ?
            AND transaction_time >= datetime(?, ?)""",
         (user_id, as_of_time, as_of_time, f"-{window_hours} hours"),
     ).fetchone()[0]
     con.close()
     return {"window_hours": window_hours, "transactions_in_window": count}
-
 
 def explain_score(txn: dict, top_k: int = 4) -> list:
     X = preprocess(txn)
