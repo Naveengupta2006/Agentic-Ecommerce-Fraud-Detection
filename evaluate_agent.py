@@ -11,11 +11,12 @@ from app.predict import predict_fraud
 from app.agent.agent import review_transaction, LOW, HIGH, HIGH_VALUE
 
 # ---------------- settings ----------------
-N_POOL = 3000          # test rows scanned to find gray-zone cases
-N_CASES = 5            # pehle 5 se trial karo, phir 40 kar dena
-SEED = 42
+N_POOL = 8000
+N_CASES = 30
+SEED = 7
 DB_PATH = "data/fraud.db"
-RESULTS_CSV = "data/eval_results.csv"
+RESULTS_CSV = "data/eval_results_v2.csv"
+EXCLUDE = {4837, 122831, 165062, 208393, 250209}   # purane 5 cases, ab dobara nahi
 
 # cost assumptions (apne hisaab se badal sakte ho)
 REVIEW_COST = 5.0           # ek manual review ka kharcha
@@ -99,6 +100,8 @@ def main():
     gray = []
     print("scanning for gray-zone cases...")
     for i, (_, row) in enumerate(pool.iterrows(), 1):
+        if int(row["transaction_id"]) in EXCLUDE:
+            continue
         score = predict_fraud(to_txn(row))["fraud_probability"]
         if LOW <= score <= HIGH:
             gray.append(row)
