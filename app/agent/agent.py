@@ -11,16 +11,17 @@ from app.agent.tools import get_user_history, check_velocity, explain_score
 load_dotenv()
 
 client = OpenAI(
-    base_url=os.environ["NVIDIA_BASE_URL"],
-    api_key=os.environ["NVIDIA_API_KEY"],
+    base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    api_key=os.environ["GEMINI_API_KEY"],
     timeout=60,
     max_retries=0,
 )
-MODEL = os.environ["NVIDIA_MODEL"]
+MODEL = os.environ["GEMINI_MODEL"]
 
 LOW, HIGH = 0.15, 0.85          # iske bahar LLM ki zaroorat nahi
 HIGH_VALUE = 1000               # isse upar agent akela block nahi karega
 MAX_STEPS = 5
+APPROVE_CAP = 0.5   # is score ya usse upar agent approve nahi kar sakta
 TOOL_NAMES = {"get_user_history", "check_velocity", "explain_score"}
 ALLOWED = {"approve", "step_up_verification", "hold_for_review", "block"}
 
@@ -89,8 +90,9 @@ def call_llm(messages, retries=3):
             )
             if resp is not None and resp.choices:
                 return resp.choices[0].message
-        except Exception:
-            pass
+            print("LLM returned no choices")
+        except Exception as e:
+            print("LLM error:", type(e).__name__, str(e)[:300])
         time.sleep(3 * (attempt + 1))
     return None
 
@@ -133,6 +135,9 @@ def review_transaction(txn, user_id, force_agent=False):
             if decision == "block" and txn["amount"] >= HIGH_VALUE:
                 decision = "hold_for_review"
                 reasoning += " (Guardrail: high-value block escalated to a human.)"
+            if decision == "approve" and score >= APPROVE_CAP:
+                decision = "step_up_verification"
+                reasoning += " (Guardrail: model score is high, so approve is not allowed; escalated to step-up.)"
             try:
                 confidence = float(data.get("confidence", 0.5))
             except (TypeError, ValueError):
