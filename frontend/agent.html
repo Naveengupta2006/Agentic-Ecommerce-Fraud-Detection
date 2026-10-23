@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fraud agent console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0E1624;
+      --panel: #152033;
+      --raised: #1A2740;
+      --line: #24324A;
+      --ink: #E6ECF4;
+      --muted: #8494AA;
+      --teal: #2DD4BF;
+      --green: #34D399;
+      --amber: #F2A93B;
+      --violet: #A78BFA;
+      --red: #F0554A;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 24px 72px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin: 0 0 6px;
+    }
+
+    header p {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 14px;
+      max-width: 560px;
+      line-height: 1.5;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 22px;
+    }
+
+    .panel h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 14px;
+    }
+
+    /* form */
+    .presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .presets button {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font: 500 12px 'Inter', sans-serif;
+      cursor: pointer;
+    }
+
+    .presets button:hover {
+      border-color: var(--teal);
+    }
+
+    fieldset {
+      border: 0;
+      padding: 0;
+      margin: 0 0 16px;
+    }
+
+    legend {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--teal);
+      padding: 0;
+      margin-bottom: 10px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input,
+    select {
+      font: 13px 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 7px 9px;
+    }
+
+    input:focus,
+    select:focus,
+    button:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 1px;
+      border-color: var(--teal);
+    }
+
+    #run {
+      width: 100%;
+      background: var(--teal);
+      color: #05201C;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px;
+      font: 600 14px 'Inter', sans-serif;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+
+    #run:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+
+    /* result */
+    .empty {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .res-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+
+    .decision {
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .decision.approve {
+      color: var(--green);
+    }
+
+    .decision.step {
+      color: var(--amber);
+    }
+
+    .decision.hold {
+      color: var(--violet);
+    }
+
+    .decision.block {
+      color: var(--red);
+    }
+
+    .source {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 18px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .bar-top {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .bar-top b {
+      font: 600 13px 'JetBrains Mono', monospace;
+      color: var(--ink);
+    }
+
+    .track {
+      height: 6px;
+      background: var(--raised);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--teal);
+      transition: width .5s ease;
+    }
+
+    .fill.warn {
+      background: var(--amber);
+    }
+
+    .reasoning {
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0 0 18px;
+      max-width: 62ch;
+    }
+
+    .sub {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin: 0 0 8px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .chip {
+      background: var(--raised);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 4px 9px;
+      font-size: 12px;
+    }
+
+    ol.trail {
+      list-style: none;
+      margin: 0;
+      padding: 0 0 0 14px;
+      border-left: 1px solid var(--line);
+    }
+
+    ol.trail li {
+      position: relative;
+      padding: 0 0 10px 14px;
+      font-size: 13px;
+    }
+
+    ol.trail li::before {
+      content: "";
+      position: absolute;
+      left: -19px;
+      top: 5px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    ol.trail li small {
+      color: var(--muted);
+      margin-left: 6px;
+    }
+
+    .error {
+      color: var(--red);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* recent */
+    .recent {
+      margin-top: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--muted);
+      font-size: 12px;
+      padding: 0 10px 8px 0;
+    }
+
+    td {
+      padding: 9px 10px 9px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    td.num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    .tag {
+      font-weight: 600;
+    }
+
+    .tag.approve {
+      color: var(--green);
+    }
+
+    .tag.step {
+      color: var(--amber);
+    }
+
+    .tag.hold {
+      color: var(--violet);
+    }
+
+    .tag.block {
+      color: var(--red);
+    }
+
+    .scroll {
+      overflow-x: auto;
+    }
+
+    @media (max-width: 860px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fill {
+        transition: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Fraud agent console</h1>
+      <p>The model scores every transaction. When the score is uncertain, the agent looks up the customer's history and
+        the model's reasons, then decides what to do.</p>
+    </header>
+
+    <div class="grid">
+      <section class="panel">
+        <h2>Transaction</h2>
+        <div class="presets">
+          <button type="button" data-preset="safe">Everyday purchase</button>
+          <button type="button" data-preset="gray">Uncertain case</button>
+          <button type="button" data-preset="fraud">Obvious fraud</button>
+        </div>
+
+        <form id="form" autocomplete="off">
+          <fieldset>
+            <legend>Customer</legend>
+            <div class="row">
+              <label>User ID <input type="number" name="user_id" required></label>
+              <label>Account age (days) <input type="number" name="account_age_days" required></label>
+            </div>
+            <div class="row">
+              <label>Past transactions <input type="number" name="total_transactions_user" required></label>
+              <label>Average amount ($) <input type="number" step="0.01" name="avg_amount_user" required></label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Purchase</legend>
+            <div class="row">
+              <label>Amount ($) <input type="number" step="0.01" name="amount" required></label>
+              <label>Time (UTC) <input type="datetime-local" name="transaction_time" required></label>
+            </div>
+            <div class="row">
+              <label>Channel
+                <select name="channel">
+                  <option>app</option>
+                  <option>web</option>
+                </select>
+              </label>
+              <label>Category
+                <select name="merchant_category">
+                  <option>grocery</option>
+                  <option>fashion</option>
+                  <option>electronics</option>
+                  <option>travel</option>
+                  <option>gaming</option>
+                </select>
+              </label>
+            </div>
+            <div class="row">
+              <label>Shipping distance (km) <input type="number" step="0.1" name="shipping_distance_km"
+                  required></label>
+              <label>Promo code used
+                <select name="promo_used">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </label>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend>Card checks</legend>
+            <div class="row">
+              <label>Address check (AVS)
+                <select name="avs_match">
+                  <option value="1">Match</option>
+                  <option value="0">No match</option>
+                </select>
+              </label>
+              <label>Security code (CVV)
+                <select name="cvv_result">
+                  <option value="1">Match</option>
+                  <option value="0">No match</option>
+                </select>
+              </label>
+            </div>
+            <div class="row">
+              <label>3D Secure
+                <select name="three_ds_flag">
+                  <option value="1">Verified</option>
+                  <option value="0">Not verified</option>
+                </select>
+              </label>
+              <span></span>
+            </div>
+            <div class="row">
+              <label>Purchase country <input type="text" name="country" maxlength="2" required></label>
+              <label>Card country <input type="text" name="bin_country" maxlength="2" required></label>
+            </div>
+          </fieldset>
+
+          <button type="submit" id="run">Review transaction</button>
+        </form>
+      </section>
+
+      <section class="panel" aria-live="polite">
+        <h2>Decision</h2>
+        <div id="result">
+          <p class="empty">Pick an example or fill in a transaction, then choose Review transaction. Uncertain cases
+            take 15 to 40 seconds because the agent makes several lookups.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel recent">
+      <h2>Recent decisions</h2>
+      <div class="scroll" id="recent">
+        <p class="empty">No decisions yet.</p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // When you deploy the API, change this one line to its public address.
+    const API = "http://127.0.0.1:8000";
+
+    const PRESETS = {
+      safe: {
+        user_id: 1, account_age_days: 900, total_transactions_user: 85, avg_amount_user: 120, amount: 115,
+        channel: "app", merchant_category: "grocery", promo_used: 0, avs_match: 1, cvv_result: 1, three_ds_flag: 1,
+        transaction_time: "2024-02-10T14:30", shipping_distance_km: 12, country: "FR", bin_country: "FR"
+      },
+      gray: {
+        user_id: 1, account_age_days: 60, total_transactions_user: 47, avg_amount_user: 170.57, amount: 500,
+        channel: "web", merchant_category: "travel", promo_used: 0, avs_match: 1, cvv_result: 0, three_ds_flag: 0,
+        transaction_time: "2024-01-20T03:15", shipping_distance_km: 1200, country: "FR", bin_country: "US"
+      },
+      fraud: {
+        user_id: 1, account_age_days: 5, total_transactions_user: 1, avg_amount_user: 300, amount: 850,
+        channel: "web", merchant_category: "travel", promo_used: 0, avs_match: 0, cvv_result: 0, three_ds_flag: 0,
+        transaction_time: "2024-01-06T03:15", shipping_distance_km: 2500, country: "FR", bin_country: "US"
+      },
+    };
+
+    const INTS = ["user_id", "account_age_days", "total_transactions_user", "promo_used", "avs_match", "cvv_result", "three_ds_flag"];
+    const FLOATS = ["avg_amount_user", "amount", "shipping_distance_km"];
+    const DECISIONS = {
+      approve: { label: "Approve", cls: "approve" },
+      step_up_verification: { label: "Ask for extra verification", cls: "step" },
+      hold_for_review: { label: "Hold for human review", cls: "hold" },
+      block: { label: "Block", cls: "block" },
+    };
+
+    const form = document.getElementById("form");
+    const resultBox = document.getElementById("result");
+    const runBtn = document.getElementById("run");
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    function applyPreset(name) {
+      const p = PRESETS[name];
+      Object.keys(p).forEach(k => { form.elements[k].value = p[k]; });
+    }
+    document.querySelectorAll("[data-preset]").forEach(b =>
+      b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+    applyPreset("gray");
+
+    function buildPayload() {
+      const p = {};
+      const data = new FormData(form);
+      for (const [k, v] of data.entries()) {
+        if (k === "transaction_time") p[k] = (v.length === 16 ? v + ":00" : v) + "Z";   // sent as UTC, no timezone shift
+        else if (INTS.includes(k)) p[k] = parseInt(v, 10);
+        else if (FLOATS.includes(k)) p[k] = parseFloat(v);
+        else if (k === "country" || k === "bin_country") p[k] = v.toUpperCase();
+        else p[k] = v;
+      }
+      return p;
+    }
+
+    function bar(label, value, warn) {
+      const wrap = el("div");
+      const top = el("div", "bar-top");
+      top.append(el("span", "", label), el("b", "", (value * 100).toFixed(1) + "%"));
+      const track = el("div", "track");
+      const fill = el("div", "fill" + (warn ? " warn" : ""));
+      fill.style.width = Math.min(Math.max(value, 0), 1) * 100 + "%";
+      track.append(fill);
+      wrap.append(top, track);
+      return wrap;
+    }
+
+    function sourceText(r) {
+      if (!r.used_agent) return "Decided by the model alone. The score was clearly low or clearly high.";
+      if (r.confidence === 0 && /unavailable|could not reach/i.test(r.reasoning))
+        return "The agent could not finish, so this was sent to a person.";
+      return "The agent investigated this one.";
+    }
+
+    function renderResult(r) {
+      resultBox.replaceChildren();
+      const meta = DECISIONS[r.decision] || { label: r.decision, cls: "hold" };
+
+      const head = el("div", "res-head");
+      head.append(el("div", "decision " + meta.cls, meta.label));
+      resultBox.append(head, el("div", "source", sourceText(r)));
+
+      const bars = el("div", "bars");
+      bars.append(bar("Model fraud score", r.model_score, r.model_score >= 0.5));
+      if (r.used_agent && r.confidence > 0)
+        bars.append(bar("Agent confidence (its own estimate, not a probability)", r.confidence, false));
+      resultBox.append(bars);
+
+      resultBox.append(el("p", "reasoning", r.reasoning));
+
+      if (r.evidence && r.evidence.length) {
+        resultBox.append(el("p", "sub", "Evidence cited"));
+        const chips = el("div", "chips");
+        r.evidence.forEach(t => chips.append(el("span", "chip", t)));
+        resultBox.append(chips);
+      }
+
+      resultBox.append(el("p", "sub", "What the agent looked at"));
+      if (r.tool_calls && r.tool_calls.length) {
+        const labels = {
+          explain_score: "Why the model gave this score",
+          get_user_history: "This customer's past transactions",
+          check_velocity: "Purchases in the last 72 hours",
+        };
+        const ol = el("ol", "trail");
+        r.tool_calls.forEach(t => {
+          const li = el("li", "", labels[t] || t);
+          li.append(el("small", "", t));
+          ol.append(li);
+        });
+        resultBox.append(ol);
+      } else {
+        resultBox.append(el("p", "empty", "No lookups were needed."));
+      }
+    }
+
+    function renderError(msg) {
+      resultBox.replaceChildren(el("p", "error", msg));
+    }
+
+    async function review(payload) {
+      const res = await fetch(API + "/agent/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        let detail = "";
+        try { detail = JSON.stringify((await res.json()).detail || ""); } catch (e) { }
+        throw new Error("The API returned " + res.status + ". " + detail.slice(0, 200));
+      }
+      return res.json();
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      runBtn.disabled = true;
+      const started = Date.now();
+      const tick = () => {
+        runBtn.textContent = "Reviewing… " + Math.round((Date.now() - started) / 1000) + "s";
+      };
+      tick();
+      const timer = setInterval(tick, 1000);
+      try {
+        renderResult(await review(buildPayload()));
+        loadRecent();
+      } catch (err) {
+        const offline = err instanceof TypeError;
+        renderError(offline
+          ? "Could not reach the API at " + API + ". Start it with: uvicorn app.main:app --reload"
+          : err.message);
+      } finally {
+        clearInterval(timer);
+        runBtn.disabled = false;
+        runBtn.textContent = "Review transaction";
+      }
+    });
+
+    async function loadRecent() {
+      const box = document.getElementById("recent");
+      try {
+        const res = await fetch(API + "/agent/decisions?limit=8");
+        if (!res.ok) throw new Error();
+        const rows = await res.json();
+        if (!rows.length) { box.replaceChildren(el("p", "empty", "No decisions yet.")); return; }
+
+        const table = el("table");
+        const thead = el("thead");
+        const hr = el("tr");
+        ["Time", "User", "Amount", "Model score", "Decision", "Decided by"].forEach(h => hr.append(el("th", "", h)));
+        thead.append(hr);
+        const tbody = el("tbody");
+        rows.forEach(r => {
+          const meta = DECISIONS[r.decision] || { label: r.decision, cls: "hold" };
+          const tr = el("tr");
+          tr.append(
+            el("td", "", new Date(r.created_at).toLocaleString()),
+            el("td", "num", String(r.user_id)),
+            el("td", "num", "$" + Number(r.amount).toFixed(2)),
+            el("td", "num", (r.model_score * 100).toFixed(1) + "%"),
+          );
+          const d = el("td"); d.append(el("span", "tag " + meta.cls, meta.label)); tr.append(d);
+          tr.append(el("td", "", r.used_agent ? "Agent" : "Model"));
+          tbody.append(tr);
+        });
+        table.append(thead, tbody);
+        box.replaceChildren(table);
+      } catch (e) {
+        box.replaceChildren(el("p", "empty", "Could not load recent decisions. Is the API running?"));
+      }
+    }
+    loadRecent();
+  </script>
+</body>
+
+</html>
