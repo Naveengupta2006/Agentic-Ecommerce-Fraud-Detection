@@ -39,7 +39,12 @@ To finish: {"action": "final", "decision": "...", "confidence": 0.0 to 1.0, "rea
 
 decision must be one of: approve, step_up_verification, hold_for_review, block.
 Call at most 3 tools, and always call explain_score before deciding.
-In your reasoning, consider the verification flags (avs_match, cvv_result, three_ds_flag) and any country mismatch between country and bin_country."""
+In your reasoning, consider the verification flags (avs_match, cvv_result, three_ds_flag) and any country mismatch between country and bin_country.
+
+TIEBREAKER RULES (apply in order):
+1. If ML score < 0.5 AND tools show no confirmed past fraud AND velocity is normal: prefer step_up_verification over block.
+2. Only use block if score >= 0.5 OR tools reveal confirmed past fraud OR extreme velocity (5+ transactions in 72h).
+3. Use hold_for_review only for high-value transactions (amount >= 1000) or when you truly cannot decide."""
 
 
 def run_tool(name, txn, user_id):
@@ -119,7 +124,6 @@ def review_transaction(txn, user_id, force_agent=False):
                            "Agent unavailable (LLM did not respond), sent to human review.",
                            [], tool_calls, True)
 
-        text = msg.content or getattr(msg, "reasoning_content", None) or ""
         text = msg.content or getattr(msg, "reasoning_content", None) or ""
         data = parse_json(text)
         if not data:
