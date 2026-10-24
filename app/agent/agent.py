@@ -22,6 +22,7 @@ LOW, HIGH = 0.15, 0.85          # iske bahar LLM ki zaroorat nahi
 HIGH_VALUE = 1000               # isse upar agent akela block nahi karega
 MAX_STEPS = 5
 APPROVE_CAP = 0.5   # is score ya usse upar agent approve nahi kar sakta
+BLOCK_MIN = 0.5
 TOOL_NAMES = {"get_user_history", "check_velocity", "explain_score"}
 ALLOWED = {"approve", "step_up_verification", "hold_for_review", "block"}
 
@@ -37,14 +38,16 @@ Reply with ONLY one JSON object per turn, nothing else.
 To call a tool: {"action": "get_user_history"}
 To finish: {"action": "final", "decision": "...", "confidence": 0.0 to 1.0, "reasoning": "2-3 sentences", "evidence": ["short fact", "short fact"]}
 
-decision must be one of: approve, step_up_verification, hold_for_review, block.
-Call at most 3 tools, and always call explain_score before deciding.
-In your reasoning, consider the verification flags (avs_match, cvv_result, three_ds_flag) and any country mismatch between country and bin_country.
+Call explain_score first, then the other two tools, one per turn, then give your final answer.
 
-TIEBREAKER RULES (apply in order):
-1. If ML score < 0.5 AND tools show no confirmed past fraud AND velocity is normal: prefer step_up_verification over block.
-2. Only use block if score >= 0.5 OR tools reveal confirmed past fraud OR extreme velocity (5+ transactions in 72h).
-3. Use hold_for_review only for high-value transactions (amount >= 1000) or when you truly cannot decide."""
+DECISION RULES (these are the only rules; do not mention any other rule or policy):
+1. If the ML score is below 0.5, choose approve or step_up_verification. Never block.
+2. If the ML score is 0.5 or higher, never choose approve. Choose block, step_up_verification or hold_for_review.
+3. Choose hold_for_review only when the amount is 1000 or more, or when you truly cannot decide.
+4. When signals are mixed, lean towards step_up_verification. Failed AVS, CVV or 3D Secure, a country mismatch between country and bin_country, a past confirmed fraud and a long shipping distance raise the risk. A clean history, passed checks and an amount close to the customer's average lower it.
+5. A past confirmed fraud alone never justifies a block.
+
+Base every statement on tool results or the transaction fields. Never invent facts."""
 
 
 def run_tool(name, txn, user_id):
@@ -87,17 +90,29 @@ def _result(decision, confidence, score, reasoning, evidence, tool_calls, used_a
         "used_agent": used_agent,
     }
 
-def call_llm(messages, retries=3):
+MIN_GAP = 6.0       # do LLM calls ke beech kam se kam itne second
+_last_call = 0.0
+
+
+def call_llm(messages, retries=4):
+    global _last_call
     for attempt in range(retries):
+        wait = MIN_GAP - (time.time() - _last_call)
+        if wait > 0:
+            time.sleep(wait)
+        _last_call = time.time()
         try:
             resp = client.chat.completions.create(
-                model=MODEL, messages=messages, temperature=0.2, max_tokens=2048
+                model=MODEL, messages=messages, temperature=0, max_tokens=2048
             )
             if resp is not None and resp.choices:
                 return resp.choices[0].message
             print("LLM returned no choices")
         except Exception as e:
-            print("LLM error:", type(e).__name__, str(e)[:300])
+            print("LLM error:", type(e).__name__, str(e)[-350:])
+            if "429" in str(e):
+                time.sleep(30 * (attempt + 1))   # per-minute limit 60 second mein reset hoti hai
+                continue
         time.sleep(3 * (attempt + 1))
     return None
 
@@ -142,6 +157,9 @@ def review_transaction(txn, user_id, force_agent=False):
             if decision == "approve" and score >= APPROVE_CAP:
                 decision = "step_up_verification"
                 reasoning += " (Guardrail: model score is high, so approve is not allowed; escalated to step-up.)"
+            if decision == "block" and score < BLOCK_MIN:
+                decision = "step_up_verification"
+                reasoning += " (Guardrail: block needs a model score of 0.5 or higher, so this became step-up.)"
             try:
                 confidence = float(data.get("confidence", 0.5))
             except (TypeError, ValueError):
