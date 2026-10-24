@@ -12,11 +12,16 @@ from app.agent.agent import review_transaction, LOW, HIGH, HIGH_VALUE
 
 # ---------------- settings ----------------
 N_POOL = 8000
-N_CASES = 30
-SEED = 7
+N_CASES = 40
+SEED = 99
 DB_PATH = "data/fraud.db"
-RESULTS_CSV = "data/eval_results_v2.csv"
-EXCLUDE = {4837, 122831, 165062, 208393, 250209}   # purane 5 cases, ab dobara nahi
+RESULTS_CSV = "data/eval_results_v3.csv"
+EXCLUDE = {
+    4837, 122831, 165062, 208393, 250209,
+    229495, 176618, 222006, 202385, 161336, 183298, 154377, 105256, 197463, 156398,
+    199960, 255414, 107862, 44430, 255497, 73034, 247340, 58391, 215736, 287401,
+    240271, 157941, 200546, 35765, 121157, 187210, 124322, 45580, 22250, 124419,
+}
 
 # cost assumptions (apne hisaab se badal sakte ho)
 REVIEW_COST = 5.0           # ek manual review ka kharcha
@@ -132,6 +137,9 @@ def main():
             "confidence": r["confidence"],
             "tool_calls": json.dumps(r["tool_calls"]),
         }
+        if r["confidence"] == 0.0 and "sent to human review" in r["reasoning"]:
+            print(f"[{n}/{len(gray)}] txn {tid} | LLM failed, not saved (will retry next run)")
+            continue
         pd.DataFrame([rec]).to_csv(RESULTS_CSV, mode="a",
                                    header=not os.path.exists(RESULTS_CSV), index=False)
         print(f"[{n}/{len(gray)}] txn {tid} | score {r['model_score']} | "
@@ -140,6 +148,7 @@ def main():
 
     res = pd.read_csv(RESULTS_CSV)
     res = res[res["transaction_id"].isin(case_ids)].copy()
+    print("cases saved:", len(res), "of", len(case_ids))
     report(res)
 
 
